@@ -2,7 +2,7 @@ advent_of_code::solution!(1);
 use itertools::Itertools;
 use std::collections::HashMap;
 
-pub fn part_one(input: &str) -> Option<u32> {
+pub fn part_one(input: &str) -> Option<i32> {
     let mut left: Vec<i32> = vec![];
     let mut right: Vec<i32> = vec![];
     input
@@ -19,7 +19,7 @@ pub fn part_one(input: &str) -> Option<u32> {
             .sorted()
             .zip(right.into_iter().sorted())
             .map(|(x, y)| (x - y).abs())
-            .sum::<i32>() as u32,
+            .sum::<i32>(),
     )
 }
 
