@@ -1,52 +1,33 @@
 advent_of_code::solution!(4);
 
-pub fn xmas(x: char, m: char, a: char, s: char) -> bool {
-    (x == 'X' && m == 'M' && a == 'A' && s == 'S') || (x == 'S' && m == 'A' && a == 'M' && s == 'X')
+pub fn matches(text: &[u8], target: &[u8], i: isize, delta: isize) -> bool {
+    if (text.len() as isize) <= i + delta * 3 {
+        return false;
+    }
+    for offset in 0..4 {
+        if text[(i + offset * delta) as usize] != target[offset as usize] {
+            return false;
+        }
+    }
+    true
+}
+
+pub fn part_one(input: &str) -> Option<u32> {
+    let width = (input.find('\n').unwrap() + 1) as isize;
+    let mut found = 0;
+    for i in 0..input.len() as isize {
+        for delta in [1, width, width + 1, width - 1] {
+            found += matches(&input.as_bytes(), "XMAS".as_bytes(), i, delta) as u32
+                + matches(&input.as_bytes(), "SAMX".as_bytes(), i, delta) as u32
+        }
+    }
+    Some(found)
 }
 
 pub fn crossmas(m1: char, m2: char, a: char, s1: char, s2: char) -> bool {
     a == 'A'
         && (m1 == 'M' && s2 == 'S' || m1 == 'S' && s2 == 'M')
         && (m2 == 'M' && s1 == 'S' || m2 == 'S' && s1 == 'M')
-}
-
-pub fn part_one(input: &str) -> Option<usize> {
-    let mut found = input.matches("XMAS").count() + input.matches("SAMX").count();
-    let grid: Vec<_> = input
-        .lines()
-        .map(|l| l.chars().collect::<Vec<_>>())
-        .collect();
-    for y in 0..grid.len() - 3 {
-        for x in 0..grid[0].len() {
-            // vertical
-            if xmas(grid[y][x], grid[y + 1][x], grid[y + 2][x], grid[y + 3][x]) {
-                found += 1;
-            }
-            // right diagonal
-            if x < grid[0].len() - 3
-                && xmas(
-                    grid[y][x],
-                    grid[y + 1][x + 1],
-                    grid[y + 2][x + 2],
-                    grid[y + 3][x + 3],
-                )
-            {
-                found += 1;
-            }
-            // left diagonal
-            if x < grid[0].len() - 3
-                && xmas(
-                    grid[y][x + 3],
-                    grid[y + 1][x + 2],
-                    grid[y + 2][x + 1],
-                    grid[y + 3][x],
-                )
-            {
-                found += 1;
-            }
-        }
-    }
-    Some(found)
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
