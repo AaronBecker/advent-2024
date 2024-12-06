@@ -81,7 +81,8 @@ pub fn part_two(input: &str) -> Option<u32> {
     }
 
     let mut blockers = 0;
-    for (ox, oy) in candidates.iter() {
+    for (ox, oy) in candidates {
+        print!(".");
         // Reset state and place obstacle
         for y in 0..grid.len() {
             for x in 0..grid[0].len() {
@@ -91,7 +92,7 @@ pub fn part_two(input: &str) -> Option<u32> {
             }
         }
         (cx, cy, cd) = (sx, sy, sd);
-        grid[*oy as usize][*ox as usize] = '#';
+        grid[oy as usize][ox as usize] = '#';
         let mut seen_states = HashSet::new();
         loop {
             if grid[cy as usize][cx as usize] != 'X' {
@@ -101,12 +102,12 @@ pub fn part_two(input: &str) -> Option<u32> {
                 seen_states.insert((cx, cy, cd));
             } else {
                 blockers += 1;
-                grid[*oy as usize][*ox as usize] = '.';
+                grid[oy as usize][ox as usize] = '.';
                 break;
             }
             let (nx, ny) = (cx + deltas[cd].0, cy + deltas[cd].1);
             if nx < 0 || ny < 0 || nx >= grid[0].len() as isize || ny >= grid.len() as isize {
-                grid[*oy as usize][*ox as usize] = '.';
+                grid[oy as usize][ox as usize] = '.';
                 break;
             }
             match grid[ny as usize][nx as usize] {
