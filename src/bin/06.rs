@@ -82,7 +82,6 @@ pub fn part_two(input: &str) -> Option<u32> {
 
     let mut blockers = 0;
     for (ox, oy) in candidates {
-        print!(".");
         // Reset state and place obstacle
         for y in 0..grid.len() {
             for x in 0..grid[0].len() {
