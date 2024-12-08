@@ -1,10 +1,9 @@
 advent_of_code::solution!(8);
 use itertools::Itertools;
 use std::collections::HashMap;
-use std::collections::HashSet;
 
 pub fn part_one(input: &str) -> Option<u32> {
-    let grid: Vec<_> = input
+    let mut grid: Vec<_> = input
         .lines()
         .map(|l| l.chars().collect::<Vec<_>>())
         .collect();
@@ -20,20 +19,21 @@ pub fn part_one(input: &str) -> Option<u32> {
         }
     }
     let mut antinodes = 0;
-    let mut antinode_positions = HashSet::new();
-    for (signal, positions) in stations {
+    for positions in stations.values() {
         for pair in positions.iter().permutations(2) {
             if let [p1, p2] = pair.as_slice() {
                 let (dx, dy) = (p2.0 - p1.0, p2.1 - p1.1);
                 let (ax, ay) = (p2.0 + dx, p2.1 + dy);
-                if !(ax < 0 || ax >= grid[0].len() as isize || ay < 0 || ay >= grid.len() as isize)
-                    && grid[ay as usize][ax as usize] != signal
+                if ax < 0
+                    || ax >= grid[0].len() as isize
+                    || ay < 0
+                    || ay >= grid.len() as isize
+                    || grid[ay as usize][ax as usize] == '#'
                 {
-                    if !antinode_positions.contains(&(ax, ay)) {
-                        antinodes += 1;
-                        antinode_positions.insert((ax, ay));
-                    }
+                    continue;
                 }
+                antinodes += 1;
+                grid[ay as usize][ax as usize] = '#';
             }
         }
     }
@@ -48,7 +48,7 @@ fn gcd(mut a: isize, mut b: isize) -> isize {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    let grid: Vec<_> = input
+    let mut grid: Vec<_> = input
         .lines()
         .map(|l| l.chars().collect::<Vec<_>>())
         .collect();
@@ -64,17 +64,16 @@ pub fn part_two(input: &str) -> Option<u32> {
         }
     }
     let mut antinodes = 0;
-    let mut antinode_positions = HashSet::new();
-    for (_signal, positions) in stations {
+    for positions in stations.values() {
         for pair in positions.iter().permutations(2) {
             if let [p1, p2] = pair.as_slice() {
                 let (dx, dy) = (p2.0 - p1.0, p2.1 - p1.1);
                 let (dx2, dy2) = (dx / gcd(dx, dy), dy / gcd(dx, dy));
                 let (mut cx, mut cy) = (p2.0, p2.1);
                 loop {
-                    if !antinode_positions.contains(&(cx, cy)) {
+                    if grid[cy as usize][cx as usize] != '#' {
                         antinodes += 1;
-                        antinode_positions.insert((cx, cy));
+                        grid[cy as usize][cx as usize] = '#';
                     }
                     (cx, cy) = (cx + dx2, cy + dy2);
                     if cx < 0 || cx >= grid[0].len() as isize || cy < 0 || cy >= grid.len() as isize
