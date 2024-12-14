@@ -34,8 +34,8 @@ pub fn part_two(input: &str) -> Option<i64> {
     loop {
         let (ax, ay) = sscanf!(lines.next().unwrap(), "Button A: X+{i64}, Y+{i64}").unwrap();
         let (bx, by) = sscanf!(lines.next().unwrap(), "Button B: X+{i64}, Y+{i64}").unwrap();
-        let (mut px, mut py) = sscanf!(lines.next().unwrap(), "Prize: X={i64}, Y={i64}").unwrap();
-        (px, py) = (px + 10000000000000, py + 10000000000000);
+        let (px, py) = sscanf!(lines.next().unwrap(), "Prize: X={i64}, Y={i64}").unwrap();
+        let (px, py) = (px + 10000000000000, py + 10000000000000);
 
         use z3::ast::{Ast, Int};
         let cfg = z3::Config::new();
@@ -52,8 +52,8 @@ pub fn part_two(input: &str) -> Option<i64> {
         solver.assert(&zb.ge(zzero));
         if solver.check() == z3::SatResult::Sat {
             let model = solver.get_model().unwrap();
-            let va = model.eval(za, true).unwrap().as_u64().unwrap();
-            let vb = model.eval(zb, true).unwrap().as_u64().unwrap();
+            let va = model.eval(za, true).unwrap().as_i64().unwrap();
+            let vb = model.eval(zb, true).unwrap().as_i64().unwrap();
             total_cost += 3 * va + vb;
         }
 
