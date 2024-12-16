@@ -42,6 +42,18 @@ pub fn part_one(input: &str) -> Option<u64> {
             if node.pos == end {
                 return Some(node.cost);
             }
+            let mut next_states = vec![
+                State {
+                    pos: node.pos,
+                    dir: (node.dir + 1) % 4,
+                    cost: node.cost + 1000,
+                },
+                State {
+                    pos: node.pos,
+                    dir: (node.dir + 3) % 4,
+                    cost: node.cost + 1000,
+                },
+            ];
             let forward = (
                 node.pos.0 as isize + deltas[node.dir].0,
                 node.pos.1 as isize + deltas[node.dir].1,
@@ -52,37 +64,20 @@ pub fn part_one(input: &str) -> Option<u64> {
                 && forward.1 < grid.len() as isize
                 && grid[forward.1 as usize][forward.0 as usize] != '#'
             {
-                let val = min_cost.entry((forward, node.dir)).or_insert(u64::MAX);
-                if node.cost + 1 < *val {
-                    *val = node.cost + 1;
-                    next.push(Reverse(State {
-                        pos: forward,
-                        dir: node.dir,
-                        cost: *val,
-                    }));
+                next_states.push(State {
+                    pos: forward,
+                    dir: node.dir,
+                    cost: node.cost + 1,
+                });
+            }
+            for state in next_states {
+                let val = min_cost.entry((state.pos, state.dir)).or_insert(u64::MAX);
+                if state.cost <= *val {
+                    if state.cost < *val {
+                        *val = state.cost;
+                        next.push(Reverse(state));
+                    }
                 }
-            }
-            let val = min_cost
-                .entry((node.pos, (node.dir + 1) % 4))
-                .or_insert(u64::MAX);
-            if node.cost + 1000 < *val {
-                *val = node.cost + 1000;
-                next.push(Reverse(State {
-                    pos: node.pos,
-                    dir: (node.dir + 1) % 4,
-                    cost: *val,
-                }));
-            }
-            let val = min_cost
-                .entry((node.pos, (node.dir + 3) % 4))
-                .or_insert(u64::MAX);
-            if node.cost + 1000 < *val {
-                *val = node.cost + 1000;
-                next.push(Reverse(State {
-                    pos: node.pos,
-                    dir: (node.dir + 3) % 4,
-                    cost: *val,
-                }));
             }
         } else {
             panic!("invalid node");
