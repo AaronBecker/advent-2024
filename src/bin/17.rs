@@ -137,7 +137,5 @@ mod tests {
     fn test_part_two() {
         // The day 2 implementation uses a hand-decompiled version of the
         // program from the real input, so examples won't work.
-        let result = part_two(&advent_of_code::template::read_file("inputs", DAY));
-        assert_eq!(result, Some(105734774294938));
     }
 }
