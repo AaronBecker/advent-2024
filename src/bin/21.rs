@@ -1,5 +1,6 @@
 advent_of_code::solution!(21);
 use itertools::Itertools;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::mem;
 
@@ -69,134 +70,213 @@ fn basic_path(s: (i32, i32), e: (i32, i32)) -> Vec<char> {
     seq
 }
 
-fn min_path(start: char, end: char, iterations: usize) -> Vec<char> {
-    let (s, e) = (key_to_position(start), key_to_position(end));
-    let seq = basic_path(s, e);
-    let mut paths = HashSet::new();
-    let slen = seq.len();
-    for p in seq.into_iter().permutations(slen) {
-        paths.insert(p);
-    }
-    //println!("paths from {} to {}", start, end);
-    let mut cur_paths = vec![];
-    for p in paths {
-        if legal_path(&p, s, Pad::Keypad) {
-            let mut full_path = vec!['A'];
-            full_path.extend(p);
-            full_path.push('A');
-            cur_paths.push(full_path);
-        }
-    }
-    //println!("d1");
-    //for p in &d1_paths {
-    //    println!("{}", p.into_iter().join(""));
-    //}
-    for i in 0..iterations {
-        println!("iteration {}", i);
-        let mut next_paths: Vec<Vec<char>> = vec![];
-        for p in &cur_paths {
-            println!("expanding path with length {}", p.len());
-            let mut next_options = vec![vec![vec!['A']]];
-            for w in p.windows(2) {
-                let (s, e) = (dir_to_position(w[0]), dir_to_position(w[1]));
-                let bpath = basic_path(s, e);
-                let blen = bpath.len();
-                let mut options = vec![];
-                for p in bpath.into_iter().permutations(blen) {
-                    if legal_path(&p, s, Pad::Dpad) {
-                        options.push(p);
-                        options.last_mut().unwrap().push('A');
-                    }
-                }
-                next_options.push(options);
-            }
-            let mut best_length = usize::max_value();
-            for p in next_options.into_iter().multi_cartesian_product() {
-                let path = p.into_iter().flatten().collect_vec();
-                if path.len() <= best_length {
-                    best_length = path.len();
-                    next_paths.push(path);
-                }
+fn min_path_len(code: &str, iterations: usize) -> u64 {
+    let mut options = vec![vec![vec!['A']]];
+    for w in code.as_bytes().windows(2) {
+        let (s, e) = (key_to_position(w[0] as char), key_to_position(w[1] as char));
+        let bpath = basic_path(s, e);
+        let blen = bpath.len();
+        let mut segment_options = HashSet::new();
+        for mut p in bpath.into_iter().permutations(blen) {
+            if legal_path(&p, s, Pad::Keypad) {
+                p.push('A');
+                segment_options.insert(p);
             }
         }
-        mem::swap(&mut cur_paths, &mut next_paths);
-        next_paths.clear();
+        options.push(Vec::from_iter(segment_options));
     }
-    //println!("out");
-    //for p in &cur_paths {
-    //    println!("{}", p.into_iter().join(""));
-    //}
-    cur_paths.into_iter().min_by_key(|p| p.len()).unwrap()
+
+    let mut best_length = u64::max_value();
+    for p in options.into_iter().multi_cartesian_product() {
+        let path = p.into_iter().flatten().collect_vec();
+        let command = &path.into_iter().join("");
+        let length = expand_dpad_commands(&command, iterations);
+        if length < best_length {
+            best_length = length;
+        }
+    }
+
+    best_length
+}
+
+fn expand_dpad_commands(commands: &str, iterations: usize) -> u64 {
+    let mut pairs: HashMap<(char, char), u64> = HashMap::new();
+    for w in commands.as_bytes().windows(2) {
+        *pairs.entry((w[0] as char, w[1] as char)).or_insert(0) += 1;
+    }
+    for _ in 0..iterations {
+        let mut next_pairs = HashMap::new();
+        for (k, v) in pairs {
+            match (k.0, k.1) {
+                ('A', '^') => {
+                    // A<A
+                    *next_pairs.entry(('A', '<')).or_insert(0) += v;
+                    *next_pairs.entry(('<', 'A')).or_insert(0) += v;
+                }
+                ('A', '>') => {
+                    // AvA
+                    *next_pairs.entry(('A', 'v')).or_insert(0) += v;
+                    *next_pairs.entry(('v', 'A')).or_insert(0) += v;
+                }
+                ('A', 'v') => {
+                    // A<vA
+                    *next_pairs.entry(('A', '<')).or_insert(0) += v;
+                    *next_pairs.entry(('<', 'v')).or_insert(0) += v;
+                    *next_pairs.entry(('v', 'A')).or_insert(0) += v;
+                }
+                ('A', '<') => {
+                    // Av<<A
+                    *next_pairs.entry(('A', 'v')).or_insert(0) += v;
+                    *next_pairs.entry(('v', '<')).or_insert(0) += v;
+                    *next_pairs.entry(('<', '<')).or_insert(0) += v;
+                    *next_pairs.entry(('<', 'A')).or_insert(0) += v;
+                }
+                ('A', 'A') => {
+                    // AA
+                    *next_pairs.entry(('A', 'A')).or_insert(0) += v;
+                }
+
+                ('^', '^') => {
+                    // AA
+                    *next_pairs.entry(('A', 'A')).or_insert(0) += v;
+                }
+                ('^', '>') => {
+                    // Av>A
+                    *next_pairs.entry(('A', 'v')).or_insert(0) += v;
+                    *next_pairs.entry(('v', '>')).or_insert(0) += v;
+                    *next_pairs.entry(('>', 'A')).or_insert(0) += v;
+                }
+                ('^', 'v') => {
+                    // AvA
+                    *next_pairs.entry(('A', 'v')).or_insert(0) += v;
+                    *next_pairs.entry(('v', 'A')).or_insert(0) += v;
+                }
+                ('^', '<') => {
+                    // Av<A
+                    *next_pairs.entry(('A', 'v')).or_insert(0) += v;
+                    *next_pairs.entry(('v', '<')).or_insert(0) += v;
+                    *next_pairs.entry(('<', 'A')).or_insert(0) += v;
+                }
+                ('^', 'A') => {
+                    // A>A
+                    *next_pairs.entry(('A', '>')).or_insert(0) += v;
+                    *next_pairs.entry(('>', 'A')).or_insert(0) += v;
+                }
+
+                ('>', '^') => {
+                    // A<^A
+                    *next_pairs.entry(('A', '<')).or_insert(0) += v;
+                    *next_pairs.entry(('<', '^')).or_insert(0) += v;
+                    *next_pairs.entry(('^', 'A')).or_insert(0) += v;
+                }
+                ('>', '>') => {
+                    // AA
+                    *next_pairs.entry(('A', 'A')).or_insert(0) += v;
+                }
+                ('>', 'v') => {
+                    // A<A
+                    *next_pairs.entry(('A', '<')).or_insert(0) += v;
+                    *next_pairs.entry(('<', 'A')).or_insert(0) += v;
+                }
+                ('>', '<') => {
+                    // A<<A
+                    *next_pairs.entry(('A', '<')).or_insert(0) += v;
+                    *next_pairs.entry(('<', '<')).or_insert(0) += v;
+                    *next_pairs.entry(('<', 'A')).or_insert(0) += v;
+                }
+                ('>', 'A') => {
+                    // A^A
+                    *next_pairs.entry(('A', '^')).or_insert(0) += v;
+                    *next_pairs.entry(('^', 'A')).or_insert(0) += v;
+                }
+
+                ('v', '^') => {
+                    // A^A
+                    *next_pairs.entry(('A', '^')).or_insert(0) += v;
+                    *next_pairs.entry(('^', 'A')).or_insert(0) += v;
+                }
+                ('v', '>') => {
+                    // A>A
+                    *next_pairs.entry(('A', '>')).or_insert(0) += v;
+                    *next_pairs.entry(('>', 'A')).or_insert(0) += v;
+                }
+                ('v', 'v') => {
+                    // AA
+                    *next_pairs.entry(('A', 'A')).or_insert(0) += v;
+                }
+                ('v', '<') => {
+                    // A<A
+                    *next_pairs.entry(('A', '<')).or_insert(0) += v;
+                    *next_pairs.entry(('<', 'A')).or_insert(0) += v;
+                }
+                ('v', 'A') => {
+                    // !!!
+                    // A^>A
+                    *next_pairs.entry(('A', '^')).or_insert(0) += v;
+                    *next_pairs.entry(('^', '>')).or_insert(0) += v;
+                    *next_pairs.entry(('>', 'A')).or_insert(0) += v;
+                }
+
+                ('<', '^') => {
+                    // A>^A
+                    *next_pairs.entry(('A', '>')).or_insert(0) += v;
+                    *next_pairs.entry(('>', '^')).or_insert(0) += v;
+                    *next_pairs.entry(('^', 'A')).or_insert(0) += v;
+                }
+                ('<', '>') => {
+                    // A>>A
+                    *next_pairs.entry(('A', '>')).or_insert(0) += v;
+                    *next_pairs.entry(('>', '>')).or_insert(0) += v;
+                    *next_pairs.entry(('>', 'A')).or_insert(0) += v;
+                }
+                ('<', 'v') => {
+                    // A>A
+                    *next_pairs.entry(('A', '>')).or_insert(0) += v;
+                    *next_pairs.entry(('>', 'A')).or_insert(0) += v;
+                }
+                ('<', '<') => {
+                    // AA
+                    *next_pairs.entry(('A', 'A')).or_insert(0) += v;
+                }
+                ('<', 'A') => {
+                    // A>>^A
+                    *next_pairs.entry(('A', '>')).or_insert(0) += v;
+                    *next_pairs.entry(('>', '>')).or_insert(0) += v;
+                    *next_pairs.entry(('>', '^')).or_insert(0) += v;
+                    *next_pairs.entry(('^', 'A')).or_insert(0) += v;
+                }
+                _ => panic!("bad pair ({}, {})", k.0, k.1),
+            }
+        }
+        pairs = next_pairs;
+    }
+
+    pairs.values().sum::<u64>()
+}
+
+fn eval_input(input: &str, iterations: usize) -> Option<u64> {
+    let mut total_cost = 0;
+    for case in input.lines() {
+        let command_len = min_path_len(&case, iterations);
+        let cost = command_len
+            * case
+                .chars()
+                .filter(|c| c.is_digit(10))
+                .collect::<String>()
+                .trim_start_matches('0')
+                .parse::<u64>()
+                .unwrap();
+        total_cost += cost;
+    }
+    Some(total_cost)
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
-    let mut total_cost = 0;
-    for case in input.lines() {
-        println!("case={}", case);
-        let case = "A".to_owned() + case;
-        let mut commands = String::new();
-        for w in case.as_bytes().windows(2) {
-            commands += &min_path(w[0] as char, w[1] as char, 2).into_iter().join("")[1..];
-            println!("partial commands: {}", commands);
-        }
-        let cost = commands.len()
-            * case
-                .chars()
-                .filter(|c| c.is_digit(10))
-                .collect::<String>()
-                .trim_start_matches('0')
-                .parse::<usize>()
-                .unwrap();
-        total_cost += cost;
-
-        println!(
-            "{} * {}",
-            commands.len(),
-            case.chars()
-                .filter(|c| c.is_digit(10))
-                .collect::<String>()
-                .trim_start_matches('0')
-                .parse::<usize>()
-                .unwrap()
-        );
-        println!("{}", cost);
-    }
-    Some(total_cost as u64)
+    eval_input(input, 2)
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    let mut total_cost = 0;
-    for case in input.lines() {
-        println!("case={}", case);
-        let case = "A".to_owned() + case;
-        let mut commands = String::new();
-        for w in case.as_bytes().windows(2) {
-            commands += &min_path(w[0] as char, w[1] as char, 3).into_iter().join("")[1..];
-            println!("partial commands: {}", commands);
-        }
-        let cost = commands.len()
-            * case
-                .chars()
-                .filter(|c| c.is_digit(10))
-                .collect::<String>()
-                .trim_start_matches('0')
-                .parse::<usize>()
-                .unwrap();
-        total_cost += cost;
-
-        println!(
-            "{} * {}",
-            commands.len(),
-            case.chars()
-                .filter(|c| c.is_digit(10))
-                .collect::<String>()
-                .trim_start_matches('0')
-                .parse::<usize>()
-                .unwrap()
-        );
-        println!("{}", cost);
-    }
-    Some(total_cost as u64)
+    eval_input(input, 25)
 }
 
 #[cfg(test)]
