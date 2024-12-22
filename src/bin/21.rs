@@ -2,7 +2,6 @@ advent_of_code::solution!(21);
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::mem;
 
 fn key_to_position(k: char) -> (i32, i32) {
     match k {
@@ -20,25 +19,8 @@ fn key_to_position(k: char) -> (i32, i32) {
         _ => panic!("invalid key"),
     }
 }
-fn dir_to_position(k: char) -> (i32, i32) {
-    match k {
-        '^' => (1, 0),
-        'A' => (2, 0),
-        '<' => (0, 1),
-        'v' => (1, 1),
-        '>' => (2, 1),
-        _ => panic!("invalid key"),
-    }
-}
-
-#[derive(PartialEq, Clone, Copy)]
-enum Pad {
-    Keypad,
-    Dpad,
-}
-
-fn legal_path(path: &Vec<char>, start: (i32, i32), pad: Pad) -> bool {
-    let blank = if pad == Pad::Keypad { (0, 3) } else { (0, 0) };
+fn legal_path(path: &Vec<char>, start: (i32, i32)) -> bool {
+    let blank = (0, 3);
     let mut pos = start;
     for p in path {
         let d = match p {
@@ -71,6 +53,7 @@ fn basic_path(s: (i32, i32), e: (i32, i32)) -> Vec<char> {
 }
 
 fn min_path_len(code: &str, iterations: usize) -> u64 {
+    let code = "A".to_owned() + code;
     let mut options = vec![vec![vec!['A']]];
     for w in code.as_bytes().windows(2) {
         let (s, e) = (key_to_position(w[0] as char), key_to_position(w[1] as char));
@@ -78,7 +61,7 @@ fn min_path_len(code: &str, iterations: usize) -> u64 {
         let blen = bpath.len();
         let mut segment_options = HashSet::new();
         for mut p in bpath.into_iter().permutations(blen) {
-            if legal_path(&p, s, Pad::Keypad) {
+            if legal_path(&p, s) {
                 p.push('A');
                 segment_options.insert(p);
             }
@@ -107,148 +90,6 @@ fn expand_dpad_commands(commands: &str, iterations: usize) -> u64 {
     for _ in 0..iterations {
         let mut next_pairs = HashMap::new();
         for (k, v) in pairs {
-            match (k.0, k.1) {
-                ('A', '^') => {
-                    // A<A
-                    *next_pairs.entry(('A', '<')).or_insert(0) += v;
-                    *next_pairs.entry(('<', 'A')).or_insert(0) += v;
-                }
-                ('A', '>') => {
-                    // AvA
-                    *next_pairs.entry(('A', 'v')).or_insert(0) += v;
-                    *next_pairs.entry(('v', 'A')).or_insert(0) += v;
-                }
-                ('A', 'v') => {
-                    // A<vA
-                    *next_pairs.entry(('A', '<')).or_insert(0) += v;
-                    *next_pairs.entry(('<', 'v')).or_insert(0) += v;
-                    *next_pairs.entry(('v', 'A')).or_insert(0) += v;
-                }
-                ('A', '<') => {
-                    // Av<<A
-                    *next_pairs.entry(('A', 'v')).or_insert(0) += v;
-                    *next_pairs.entry(('v', '<')).or_insert(0) += v;
-                    *next_pairs.entry(('<', '<')).or_insert(0) += v;
-                    *next_pairs.entry(('<', 'A')).or_insert(0) += v;
-                }
-                ('A', 'A') => {
-                    // AA
-                    *next_pairs.entry(('A', 'A')).or_insert(0) += v;
-                }
-
-                ('^', '^') => {
-                    // AA
-                    *next_pairs.entry(('A', 'A')).or_insert(0) += v;
-                }
-                ('^', '>') => {
-                    // Av>A
-                    *next_pairs.entry(('A', 'v')).or_insert(0) += v;
-                    *next_pairs.entry(('v', '>')).or_insert(0) += v;
-                    *next_pairs.entry(('>', 'A')).or_insert(0) += v;
-                }
-                ('^', 'v') => {
-                    // AvA
-                    *next_pairs.entry(('A', 'v')).or_insert(0) += v;
-                    *next_pairs.entry(('v', 'A')).or_insert(0) += v;
-                }
-                ('^', '<') => {
-                    // Av<A
-                    *next_pairs.entry(('A', 'v')).or_insert(0) += v;
-                    *next_pairs.entry(('v', '<')).or_insert(0) += v;
-                    *next_pairs.entry(('<', 'A')).or_insert(0) += v;
-                }
-                ('^', 'A') => {
-                    // A>A
-                    *next_pairs.entry(('A', '>')).or_insert(0) += v;
-                    *next_pairs.entry(('>', 'A')).or_insert(0) += v;
-                }
-
-                ('>', '^') => {
-                    // A<^A
-                    *next_pairs.entry(('A', '<')).or_insert(0) += v;
-                    *next_pairs.entry(('<', '^')).or_insert(0) += v;
-                    *next_pairs.entry(('^', 'A')).or_insert(0) += v;
-                }
-                ('>', '>') => {
-                    // AA
-                    *next_pairs.entry(('A', 'A')).or_insert(0) += v;
-                }
-                ('>', 'v') => {
-                    // A<A
-                    *next_pairs.entry(('A', '<')).or_insert(0) += v;
-                    *next_pairs.entry(('<', 'A')).or_insert(0) += v;
-                }
-                ('>', '<') => {
-                    // A<<A
-                    *next_pairs.entry(('A', '<')).or_insert(0) += v;
-                    *next_pairs.entry(('<', '<')).or_insert(0) += v;
-                    *next_pairs.entry(('<', 'A')).or_insert(0) += v;
-                }
-                ('>', 'A') => {
-                    // A^A
-                    *next_pairs.entry(('A', '^')).or_insert(0) += v;
-                    *next_pairs.entry(('^', 'A')).or_insert(0) += v;
-                }
-
-                ('v', '^') => {
-                    // A^A
-                    *next_pairs.entry(('A', '^')).or_insert(0) += v;
-                    *next_pairs.entry(('^', 'A')).or_insert(0) += v;
-                }
-                ('v', '>') => {
-                    // A>A
-                    *next_pairs.entry(('A', '>')).or_insert(0) += v;
-                    *next_pairs.entry(('>', 'A')).or_insert(0) += v;
-                }
-                ('v', 'v') => {
-                    // AA
-                    *next_pairs.entry(('A', 'A')).or_insert(0) += v;
-                }
-                ('v', '<') => {
-                    // A<A
-                    *next_pairs.entry(('A', '<')).or_insert(0) += v;
-                    *next_pairs.entry(('<', 'A')).or_insert(0) += v;
-                }
-                ('v', 'A') => {
-                    // !!!
-                    // A^>A
-                    *next_pairs.entry(('A', '^')).or_insert(0) += v;
-                    *next_pairs.entry(('^', '>')).or_insert(0) += v;
-                    *next_pairs.entry(('>', 'A')).or_insert(0) += v;
-                }
-
-                ('<', '^') => {
-                    // A>^A
-                    *next_pairs.entry(('A', '>')).or_insert(0) += v;
-                    *next_pairs.entry(('>', '^')).or_insert(0) += v;
-                    *next_pairs.entry(('^', 'A')).or_insert(0) += v;
-                }
-                ('<', '>') => {
-                    // A>>A
-                    *next_pairs.entry(('A', '>')).or_insert(0) += v;
-                    *next_pairs.entry(('>', '>')).or_insert(0) += v;
-                    *next_pairs.entry(('>', 'A')).or_insert(0) += v;
-                }
-                ('<', 'v') => {
-                    // A>A
-                    *next_pairs.entry(('A', '>')).or_insert(0) += v;
-                    *next_pairs.entry(('>', 'A')).or_insert(0) += v;
-                }
-                ('<', '<') => {
-                    // AA
-                    *next_pairs.entry(('A', 'A')).or_insert(0) += v;
-                }
-                ('<', 'A') => {
-                    // A>>^A
-                    *next_pairs.entry(('A', '>')).or_insert(0) += v;
-                    *next_pairs.entry(('>', '>')).or_insert(0) += v;
-                    *next_pairs.entry(('>', '^')).or_insert(0) += v;
-                    *next_pairs.entry(('^', 'A')).or_insert(0) += v;
-                }
-                _ => panic!("bad pair ({}, {})", k.0, k.1),
-            }
-
-            /*
             let moves = match (k.0, k.1) {
                 ('A', '^') => "A<A",
                 ('A', '>') => "AvA",
@@ -282,7 +123,6 @@ fn expand_dpad_commands(commands: &str, iterations: usize) -> u64 {
                     .entry((pair[0] as char, pair[1] as char))
                     .or_insert(0) += v;
             }
-            */
         }
         pairs = next_pairs;
     }
@@ -294,15 +134,14 @@ fn eval_input(input: &str, iterations: usize) -> Option<u64> {
     let mut total_cost = 0;
     for case in input.lines() {
         let command_len = min_path_len(&case, iterations);
-        let cost = command_len
-            * case
-                .chars()
-                .filter(|c| c.is_digit(10))
-                .collect::<String>()
-                .trim_start_matches('0')
-                .parse::<u64>()
-                .unwrap();
-        total_cost += cost;
+        let case_val = case
+            .chars()
+            .filter(|c| c.is_digit(10))
+            .collect::<String>()
+            .trim_start_matches('0')
+            .parse::<u64>()
+            .unwrap();
+        total_cost += command_len * case_val;
     }
     Some(total_cost)
 }
@@ -328,6 +167,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(154115708116294));
     }
 }
