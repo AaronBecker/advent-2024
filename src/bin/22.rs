@@ -42,18 +42,10 @@ pub fn part_two(input: &str) -> Option<u64> {
         }
     }
 
-    let mut best_profit = 0;
-    for history in candidates {
-        let mut profit = 0;
-        for p in &patterns {
-            profit += p.get(&history).unwrap_or(&0);
-        }
-        if best_profit < profit {
-            best_profit = profit;
-        }
-    }
-
-    Some(best_profit)
+    candidates
+        .iter()
+        .map(|c| patterns.iter().map(|p| p.get(&c).unwrap_or(&0)).sum())
+        .max()
 }
 
 #[cfg(test)]
