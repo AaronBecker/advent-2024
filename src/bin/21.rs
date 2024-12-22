@@ -247,6 +247,42 @@ fn expand_dpad_commands(commands: &str, iterations: usize) -> u64 {
                 }
                 _ => panic!("bad pair ({}, {})", k.0, k.1),
             }
+
+            /*
+            let moves = match (k.0, k.1) {
+                ('A', '^') => "A<A",
+                ('A', '>') => "AvA",
+                ('A', 'v') => "A<vA",
+                ('A', '<') => "Av<<A",
+                ('A', 'A') => "AA",
+                ('^', '^') => "AA",
+                ('^', '>') => "Av>A",
+                ('^', 'v') => "AvA",
+                ('^', '<') => "Av<A",
+                ('^', 'A') => "A>A",
+                ('>', '^') => "A<^A",
+                ('>', '>') => "AA",
+                ('>', 'v') => "A<A",
+                ('>', '<') => "A<<A",
+                ('>', 'A') => "A^A",
+                ('v', '^') => "A^A",
+                ('v', '>') => "A>A",
+                ('v', 'v') => "AA",
+                ('v', '<') => "A<A",
+                ('v', 'A') => "A^>A",
+                ('<', '^') => "A>^A",
+                ('<', '>') => "A>>A",
+                ('<', 'v') => "A>A",
+                ('<', '<') => "AA",
+                ('<', 'A') => "A>>^A",
+                _ => panic!("bad pair ({}, {})", k.0, k.1),
+            };
+            for pair in moves.as_bytes().windows(2) {
+                *next_pairs
+                    .entry((pair[0] as char, pair[1] as char))
+                    .or_insert(0) += v;
+            }
+            */
         }
         pairs = next_pairs;
     }
